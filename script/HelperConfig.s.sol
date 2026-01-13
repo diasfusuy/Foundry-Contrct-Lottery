@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import {Script} from "forge-std/Script.sol";
 import {VRFCoordinatorV2_5Mock} from "lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
+import {LinkToken} from "../test/mocks/LinkToken.sol";
 
 abstract contract CodeConstants {
     /* VRF Mock Values */
@@ -12,7 +13,7 @@ abstract contract CodeConstants {
     int256 public MOCK_WEI_PER_UNIT_LINK = 4e15;
  
 
-    uint256 public constant ETH_SEPHOLIA_CHAIN_ID = 1115511;
+    uint256 public constant ETH_SEPHOLIA_CHAIN_ID = 11155111;
     uint256 public constant LOCAL_CHAIN_ID = 31337;
 }
 
@@ -27,13 +28,15 @@ error HelperConfig__NoConfigForChainId();
         bytes32 gasLane;
         uint256 subscriptionId;
         uint32 callbackGasLimit;
+        address link;
+        address account;
     }
 
-    NetworkConfig public activeNetworkConfig;
+    NetworkConfig public localNetworkConfig;
     mapping(uint256 => NetworkConfig) public networkConfigs;
 
     constructor() {
-        networkConfigs[ETH_SEPHOLIA_CHAIN_ID] = getSepholiaConfig();
+        networkConfigs[ETH_SEPHOLIA_CHAIN_ID] = getSepoliaConfig();
     } 
 
     function getConfigByChainId(uint256 chainId) public returns (NetworkConfig memory)
@@ -51,20 +54,22 @@ error HelperConfig__NoConfigForChainId();
         return getConfigByChainId(block.chainid);
     }
 
-    function getSepholiaConfig() public pure returns (NetworkConfig memory) {
+    function getSepoliaConfig() public pure returns (NetworkConfig memory) {
         return NetworkConfig({
             entranceFee: 0.01 ether,
             interval: 30,
             vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
             gasLane: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
-            subscriptionId: 0,
-            callbackGasLimit: 500000
+            subscriptionId: 6120,
+            callbackGasLimit: 500000, 
+            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
+            account: 0x5d1beaDf6E5F9A1ea564162C797344b1337482de
         });
     }
 
     function getOrCreateAnvilETHConfig() public returns(NetworkConfig memory) {
-        if (activeNetworkConfig.vrfCoordinator != address(0)) {
-            return activeNetworkConfig;
+        if (localNetworkConfig.vrfCoordinator != address(0)) {
+            return localNetworkConfig;
         }
 
         // Deploy mocks
@@ -74,16 +79,20 @@ error HelperConfig__NoConfigForChainId();
             MOCK_GAS_PRICE_LINK,
             MOCK_WEI_PER_UNIT_LINK
         );
+        LinkToken linkToken = new LinkToken();
         vm.stopBroadcast();
 
-        activeNetworkConfig = NetworkConfig({
+        localNetworkConfig = NetworkConfig({
             entranceFee: 0.01 ether,
             interval: 30,
             vrfCoordinator: address(vrfCoordinatorMock),
             gasLane: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
             subscriptionId: 0,
-            callbackGasLimit: 500000
+            callbackGasLimit: 500000,
+            link: address(linkToken),
+            account: 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38
         });
-        return activeNetworkConfig;
+        
+        return localNetworkConfig;
     }
 }
