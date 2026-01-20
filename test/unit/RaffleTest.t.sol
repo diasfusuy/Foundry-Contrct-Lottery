@@ -9,7 +9,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {VRFCoordinatorV2_5Mock} from "lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 import {CodeConstants} from "../../script/HelperConfig.s.sol";
 
-contract RaffelTest is CodeConstants, Test {
+contract RaffleTest is CodeConstants, Test {
     Raffle public raffle;
     HelperConfig public helperConfig;
 
@@ -168,7 +168,7 @@ contract RaffelTest is CodeConstants, Test {
     }
 
     modifier raffleEntered() {
-                vm.prank(PLAYER);
+        vm.prank(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
@@ -234,5 +234,25 @@ contract RaffelTest is CodeConstants, Test {
         assert(uint256(raffleState) == 0);
         assert(winnerBalance == winnerStartingBalance + prize);
         assert(endingTimeStamp > startingTimeStamp);
+    }
+
+    /** Interaction Tests */
+    function testCreatingSubscriptionsUsingConfig() public {
+        helperConfig = new HelperConfig();
+        address vrfCoordniator = helperConfig.getConfig().vrfCoordinator;
+        uint256 subId = helperConfig.getConfig().subscriptionId;
+        assert(vrfCoordniator != address(0));
+        assert(subId != 0);
+    }
+
+    /*Getter Functions*/
+    function testGetEntranceFee() public {
+        // Arrange
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
+        // Act
+        uint256 fee = raffle.getEntranceFee();
+        // Assert
+        assert(fee == entranceFee);
     }
 }
